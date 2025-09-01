@@ -671,3 +671,24 @@ def restart():
     shake_phase = 0.0
     generate_road()
     generate_environment()
+
+
+def main():
+    glutInit()
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GL_DEPTH)
+    glutInitWindowSize(window_width, window_height)
+    glutCreateWindow(b"3D Car Runner - MOSS Safer Build")
+    glutDisplayFunc(display)
+    glutReshapeFunc(reshape)
+    glutKeyboardFunc(keyboard)
+    glutKeyboardUpFunc(keyboard_up)
+    glutSpecialFunc(special_keys)
+    glutMouseFunc(mouse)
+    glutIdleFunc(idle)
+    init_gl()
+    generate_road()
+    generate_environment()
+    glutMainLoop()
+
+if __name__ == "__main__":
+    main()    
