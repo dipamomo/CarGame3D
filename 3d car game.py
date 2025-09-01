@@ -233,3 +233,143 @@ def update_road():
             road_segments.remove(max(road_segments))
             score += 1
     recycle_environment()
+
+def draw_terrain():
+    base_x = round(player_x / TERRAIN_SIZE) * TERRAIN_SIZE
+    half = TERRAIN_SIZE * 0.5
+    glPushMatrix()
+    glColor3f(0.0, 0.60, 0.0)
+    offsets = (-TERRAIN_SIZE, 0.0, TERRAIN_SIZE)
+    ix = 0
+    while ix < 3:
+        ox = offsets[ix]
+        iz = 0
+        while iz < 3:
+            oz = offsets[iz]
+            x0 = base_x + ox - half
+            x1 = base_x + ox + half
+            z0 = player_z + oz - half
+            z1 = player_z + oz + half
+            glBegin(GL_TRIANGLES)
+            glVertex3f(x0, 0.0, z0)
+            glVertex3f(x0, 0.0, z1)
+            glVertex3f(x1, 0.0, z1)
+            glVertex3f(x0, 0.0, z0)
+            glVertex3f(x1, 0.0, z1)
+            glVertex3f(x1, 0.0, z0)
+            glEnd()
+            iz += 1
+        ix += 1
+    glPopMatrix()
+
+def _draw_road_walls(seg_z, next_z):
+    glColor3f(0.5, 0.5, 0.5)
+    glBegin(GL_QUADS)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.0, seg_z)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.5, seg_z)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.5, next_z)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.0, next_z)
+    glEnd()
+    glBegin(GL_QUADS)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.0, seg_z)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.5, seg_z)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.5, next_z)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.0, next_z)
+    glEnd()
+
+def draw_road():
+    glPushMatrix()
+    glColor3f(0.2, 0.2, 0.2)
+    if not road_segments:
+        glPopMatrix()
+        return
+    i = 0
+    n = len(road_segments)
+    while i < n:
+        seg_z = road_segments[i]
+        if i + 1 < n:
+            next_z = road_segments[i + 1]
+        else:
+            next_z = seg_z + SEGMENT_LEN
+        glBegin(GL_QUADS)
+        glVertex3f(-ROAD_WIDTH / 2, 0.01, seg_z)
+        glVertex3f(-ROAD_WIDTH / 2, 0.01, seg_z + SEGMENT_LEN)
+        glVertex3f(ROAD_WIDTH / 2, 0.01, seg_z + SEGMENT_LEN)
+        glVertex3f(ROAD_WIDTH / 2, 0.01, seg_z)
+        glEnd()
+        _draw_road_walls(seg_z, next_z)
+        glColor3f(0.2, 0.2, 0.2)
+        i += 1
+    glColor3f(1.0, 1.0, 1.0)
+    start_z = min(road_segments)
+    end_z = max(road_segments) + SEGMENT_LEN
+    z = start_z
+    draw_stripe = True
+    while z < end_z:
+        if draw_stripe:
+            actual_len = min(STRIPE_LEN, end_z - z)
+            glBegin(GL_QUADS)
+            glVertex3f(-STRIPE_WIDTH / 2, 0.02, z)
+            glVertex3f(-STRIPE_WIDTH / 2, 0.02, z + actual_len)
+            glVertex3f(STRIPE_WIDTH / 2, 0.02, z + actual_len)
+            glVertex3f(STRIPE_WIDTH / 2, 0.02, z)
+            glEnd()
+            z += STRIPE_LEN
+        else:
+            z += GAP_LEN
+        draw_stripe = not draw_stripe
+    glPopMatrix()
+
+def draw_tree(x, z, scale):
+    sx, sz, sc = float(x), float(z), float(scale)
+    glPushMatrix()
+    glTranslatef(sx, 0.0, sz)
+    glScalef(sc, sc, sc)
+    glColor3f(0.4, 0.2, 0.1)
+    glPushMatrix()
+    glRotatef(-90.0, 1.0, 0.0, 0.0)
+    glutSolidCylinder(0.30, 3.00, 10, 2)
+    glPopMatrix()
+    glColor3f(0.1, 0.7, 0.2)
+    glPushMatrix()
+    glTranslatef(0.0, 3.0, 0.0)
+    glutSolidSphere(1.5, 10, 10)
+    glPopMatrix()
+    glPopMatrix()
+
+def draw_house(x, z, house_type, color):
+    glPushMatrix()
+    glTranslatef(x, 0.0, z)
+    glRotatef(90 if x < 0 else -90, 0, 1, 0)
+    scale_factor = 2.0
+    house_w = 2.5 * scale_factor * 2.0
+    house_h = 2.0 * scale_factor * 1.5
+    house_d = 2.5 * scale_factor
+    glColor3f(color[0], color[1], color[2])
+    glPushMatrix()
+    glTranslatef(0.0, house_h / 2, 0.0)
+    glScalef(house_w, house_h, house_d)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    glColor3f(0.6, 0.2, 0.1)
+    glPushMatrix()
+    glTranslatef(0.0, house_h, 0.0)
+    glRotatef(-90, 1, 0, 0)
+    glutSolidCone(house_w / 2 * 1.7, 1.5 * scale_factor, 16, 16)
+    glPopMatrix()
+    glPopMatrix()
+
+def draw_environment():
+    i = 0
+    t_len = len(trees)
+    while i < t_len:
+        tx, tz, ts = trees[i]
+        draw_tree(tx, tz, ts)
+        i += 1
+    j = 0
+    h_len = len(houses)
+    while j < h_len:
+        hx, hz, ht = houses[j]
+        draw_house(hx, hz, ht, house_colors[j])
+        j += 1    
+
