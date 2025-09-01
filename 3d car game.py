@@ -1,3 +1,4 @@
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -16,6 +17,72 @@ camera_z = 10.0
 look_x = 0.0
 look_y = 0.0
 look_z = 0.0
+
+UP_X, UP_Y, UP_Z = 0.0, 1.0, 0.0
+
+
+player_x = 0.0
+player_y = 0.0
+player_z = 0.0
+player_yaw = 0.0
+player_speed = 0.0
+
+MAX_SPEED = 0.53
+ACCEL, FRICTION = 0.00105, 0.00095
+TURN_RATE = 0.21
+WHEEL_X_OFFSET = 0.57
+
+MAX_SPEED = 0.53
+ACCEL, FRICTION = 0.00105, 0.00095
+TURN_RATE = 0.21
+WHEEL_X_OFFSET = 0.57
+
+moving_forward, moving_brake = False, False
+turning_left, turning_right = False, False
+
+first_person_view = False
+game_over = False
+score = 0
+
+LANE_WIDTH = 3.05
+ROAD_WIDTH = LANE_WIDTH * 3.5
+
+SEGMENT_LEN = 18.9
+NUM_SEGMENTS = 11
+TERRAIN_SIZE = 192.0
+
+road_segments = []
+trees, houses, house_colors = [], [], []
+
+NUM_TREES = 58
+NUM_HOUSES = 22
+
+STRIPE_LEN = 2.6
+GAP_LEN = 2.6
+STRIPE_WIDTH = 0.30
+
+HIT_X = 0.95
+HIT_Z = 1.60
+
+class NpcCar:
+    def __init__(self, pos_x, pos_z, velocity, color_rgb):
+        self.x, self.z = float(pos_x), float(pos_z)
+        self.speed = float(velocity)
+        self.color = (float(color_rgb[0]), float(color_rgb[1]), float(color_rgb[2]))
+        self.passed = False
+
+npcs = []
+cpu_spawn_timer = 0
+cpu_spawn_interval = 250
+
+BASE_NPC_SPEED = 0.23
+SPAWN_DISTANCE = 77
+OVERTAKE_BONUS = 115
+
+SHAKE_FRAMES = 35
+SHAKE_MAG = 0.35
+shake_frames = 0
+shake_phase = 0.0
 
 UP_X, UP_Y, UP_Z = 0.0, 1.0, 0.0
 
@@ -140,4 +207,116 @@ def generate_environment():
                              random.uniform(0.2, 1.0),
                              random.uniform(0.2, 1.0)])
         h += 1
+
+
+def recycle_environment():
+    for t in trees:
+        if t[1] > player_z + SEGMENT_LEN * 2:
+            t[1] -= SEGMENT_LEN * NUM_SEGMENTS
+            side = -1 if random.random() < 0.5 else 1
+            t[0] = side * (ROAD_WIDTH / 2 + 2 + random.uniform(0.5, 3.0))
+            t[2] = random.uniform(1.3, 2.8)
+    for h in houses:
+        if h[1] > player_z + SEGMENT_LEN * 2:
+            h[1] -= SEGMENT_LEN * NUM_SEGMENTS
+            side = -1 if random.random() < 0.5 else 1
+            h[0] = side * (ROAD_WIDTH / 2 + 8 + random.uniform(1, 5))
+            h[2] = random.randint(0, 2)
+
+def update_road():
+    global score, road_segments
+    furthest = min(road_segments)
+    threshold = (NUM_SEGMENTS - 5) * SEGMENT_LEN
+    if player_z < furthest + threshold:
+        road_segments.append(furthest - SEGMENT_LEN)
+        if len(road_segments) > NUM_SEGMENTS:
+            road_segments.remove(max(road_segments))
+            score += 1
+    recycle_environment()
+
+def draw_terrain():
+    base_x = round(player_x / TERRAIN_SIZE) * TERRAIN_SIZE
+    half = TERRAIN_SIZE * 0.5
+    glPushMatrix()
+    glColor3f(0.0, 0.60, 0.0)
+    offsets = (-TERRAIN_SIZE, 0.0, TERRAIN_SIZE)
+    ix = 0
+    while ix < 3:
+        ox = offsets[ix]
+        iz = 0
+        while iz < 3:
+            oz = offsets[iz]
+            x0 = base_x + ox - half
+            x1 = base_x + ox + half
+            z0 = player_z + oz - half
+            z1 = player_z + oz + half
+            glBegin(GL_TRIANGLES)
+            glVertex3f(x0, 0.0, z0)
+            glVertex3f(x0, 0.0, z1)
+            glVertex3f(x1, 0.0, z1)
+            glVertex3f(x0, 0.0, z0)
+            glVertex3f(x1, 0.0, z1)
+            glVertex3f(x1, 0.0, z0)
+            glEnd()
+            iz += 1
+        ix += 1
+    glPopMatrix()
+
+def _draw_road_walls(seg_z, next_z):
+    glColor3f(0.5, 0.5, 0.5)
+    glBegin(GL_QUADS)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.0, seg_z)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.5, seg_z)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.5, next_z)
+    glVertex3f(-ROAD_WIDTH / 2 - 0.5, 0.0, next_z)
+    glEnd()
+    glBegin(GL_QUADS)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.0, seg_z)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.5, seg_z)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.5, next_z)
+    glVertex3f(ROAD_WIDTH / 2 + 0.5, 0.0, next_z)
+    glEnd()
+
+def draw_road():
+    glPushMatrix()
+    glColor3f(0.2, 0.2, 0.2)
+    if not road_segments:
+        glPopMatrix()
+        return
+    i = 0
+    n = len(road_segments)
+    while i < n:
+        seg_z = road_segments[i]
+        if i + 1 < n:
+            next_z = road_segments[i + 1]
+        else:
+            next_z = seg_z + SEGMENT_LEN
+        glBegin(GL_QUADS)
+        glVertex3f(-ROAD_WIDTH / 2, 0.01, seg_z)
+        glVertex3f(-ROAD_WIDTH / 2, 0.01, seg_z + SEGMENT_LEN)
+        glVertex3f(ROAD_WIDTH / 2, 0.01, seg_z + SEGMENT_LEN)
+        glVertex3f(ROAD_WIDTH / 2, 0.01, seg_z)
+        glEnd()
+        _draw_road_walls(seg_z, next_z)
+        glColor3f(0.2, 0.2, 0.2)
+        i += 1
+    glColor3f(1.0, 1.0, 1.0)
+    start_z = min(road_segments)
+    end_z = max(road_segments) + SEGMENT_LEN
+    z = start_z
+    draw_stripe = True
+    while z < end_z:
+        if draw_stripe:
+            actual_len = min(STRIPE_LEN, end_z - z)
+            glBegin(GL_QUADS)
+            glVertex3f(-STRIPE_WIDTH / 2, 0.02, z)
+            glVertex3f(-STRIPE_WIDTH / 2, 0.02, z + actual_len)
+            glVertex3f(STRIPE_WIDTH / 2, 0.02, z + actual_len)
+            glVertex3f(STRIPE_WIDTH / 2, 0.02, z)
+            glEnd()
+            z += STRIPE_LEN
+        else:
+            z += GAP_LEN
+        draw_stripe = not draw_stripe
+    glPopMatrix()
 
