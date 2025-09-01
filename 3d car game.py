@@ -537,8 +537,6 @@ def update_npcs():
             game_over = True
     npcs[:] = [c for c in npcs if c.z > player_z - 150]    
 
-<<<<<<< HEAD
-=======
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
@@ -592,4 +590,62 @@ def display():
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
     glutSwapBuffers()    
->>>>>>> 70cc989a0ba1681b8edaeed1178aac6b1eb82619
+
+def reshape(width, height):
+    wh = (int(width), max(1, int(height)))
+    global window_width, window_height
+    window_width, window_height = wh
+    glViewport(0, 0, wh[0], wh[1])
+
+def keyboard(key, x, y):
+    global first_person_view, moving_forward, moving_brake, turning_left, turning_right
+    if game_over and key == b'r':
+        restart()
+        return
+    if key == b'w':
+        moving_forward = True
+    elif key == b's':
+        moving_brake = True
+    elif key == b'a':
+        turning_left = True
+    elif key == b'd':
+        turning_right = True
+    elif key == b'v':
+        first_person_view = not first_person_view
+    glutPostRedisplay()
+
+def keyboard_up(key, x, y):
+    global moving_forward, moving_brake, turning_left, turning_right
+    if key == b'w':
+        moving_forward = False
+    elif key == b's':
+        moving_brake = False
+    elif key == b'a':
+        turning_left = False
+    elif key == b'd':
+        turning_right = False
+
+def special_keys(key, x, y):
+    global camera_y
+    if key == GLUT_KEY_UP:
+        camera_y += 0.5
+    elif key == GLUT_KEY_DOWN:
+        camera_y = max(1.0, camera_y - 0.5)
+    glutPostRedisplay()
+
+def mouse(button, state, x, y):
+    if button == GLUT_RIGHT_BUTTON:
+        if state == GLUT_DOWN:
+            global first_person_view
+            first_person_view = not first_person_view
+            glutPostRedisplay()
+        return
+
+def idle():
+    if game_over:
+        glutPostRedisplay()
+        return
+    update_player()
+    update_npcs()
+    glutPostRedisplay()
+
