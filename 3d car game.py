@@ -537,3 +537,59 @@ def update_npcs():
             game_over = True
     npcs[:] = [c for c in npcs if c.z > player_z - 150]    
 
+<<<<<<< HEAD
+=======
+def display():
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(60, window_width / window_height, 0.1, 1000.0)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    update_camera()
+    gluLookAt(camera_x, camera_y, camera_z, look_x, look_y, look_z, UP_X, UP_Y, UP_Z)
+    draw_terrain()
+    draw_road()
+    draw_environment()
+    draw_player()
+    for car in npcs:
+        draw_npc(car)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, window_width, 0, window_height, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    glPushAttrib(GL_ENABLE_BIT)
+    glDisable(GL_LIGHTING)
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(10, window_height - 20)
+    for ch in f"Speed: {player_speed:.2f}":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(10, window_height - 40)
+    for ch in f"Score: {score}":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+    if game_over:
+        glColor3f(1.0, 0.0, 1.0)
+        glRasterPos2f(window_width / 2 - 70, window_height / 2 + 50)
+        for ch in "Game Over":
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+        glRasterPos2f(window_width / 2 - 110, window_height / 2)
+        for ch in f"Final Score: {score}":
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+        glRasterPos2f(window_width / 2 - 120, window_height / 2 - 20)
+        for ch in "Press 'R' to restart":
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+    glPopAttrib()
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(10, 20)
+    for ch in "W/S: Accelerate/Brake  A/D: Turn  V: View  Up/Down: Camera Height":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(ch))
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glutSwapBuffers()    
+>>>>>>> 70cc989a0ba1681b8edaeed1178aac6b1eb82619
