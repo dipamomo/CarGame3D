@@ -1,4 +1,5 @@
 
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -537,6 +538,8 @@ def update_npcs():
             game_over = True
     npcs[:] = [c for c in npcs if c.z > player_z - 150]    
 
+<<<<<<< HEAD
+=======
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
@@ -590,6 +593,7 @@ def display():
     glPopMatrix()
     glMatrixMode(GL_MODELVIEW)
     glutSwapBuffers()    
+
 
 def reshape(width, height):
     wh = (int(width), max(1, int(height)))
@@ -649,3 +653,21 @@ def idle():
     update_npcs()
     glutPostRedisplay()
 
+
+def restart():
+    global player_x, player_y, player_z, player_yaw, player_speed
+    global game_over, score, cpu_spawn_timer, npcs
+    global moving_forward, moving_brake, turning_left, turning_right
+    global shake_frames, shake_phase
+    player_x, player_y, player_z = 0.0, 0.0, 0.0
+    player_yaw, player_speed = 0.0, 0.0
+    game_over = False
+    score = 0
+    cpu_spawn_timer = 0
+    npcs = []
+    moving_forward = moving_brake = False
+    turning_left = turning_right = False
+    shake_frames = 0
+    shake_phase = 0.0
+    generate_road()
+    generate_environment()
