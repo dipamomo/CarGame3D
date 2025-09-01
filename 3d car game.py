@@ -454,3 +454,86 @@ def update_camera():
         look_y += 0.3 * SHAKE_MAG * math.sin(shake_phase * 29.0)
         shake_phase += 0.35
         shake_frames -= 1    
+
+def update_player():
+    global player_x, player_z, player_speed, player_yaw, game_over
+    if game_over:
+        return
+    if moving_forward:
+        player_speed = clamp(player_speed + ACCEL, 0.0, MAX_SPEED)
+    elif moving_brake:
+        player_speed = max(0.0, player_speed - ACCEL)
+    else:
+        player_speed = max(0.0, player_speed - FRICTION)
+    if player_speed > 0.05:
+        if turning_left:
+            player_yaw += TURN_RATE * (player_speed / MAX_SPEED)
+        if turning_right:
+            player_yaw -= TURN_RATE * (player_speed / MAX_SPEED)
+        player_yaw = clamp(player_yaw, -90.0, 90.0)
+    if player_speed != 0.0:
+        ang = math.radians(player_yaw)
+        s, c = math.sin(ang), math.cos(ang)
+        player_x += -player_speed * s
+        player_z += -player_speed * c
+    if (abs(player_x - WHEEL_X_OFFSET) > ROAD_WIDTH / 2 or
+        abs(player_x + WHEEL_X_OFFSET) > ROAD_WIDTH / 2):
+        trigger_shake()
+        game_over = True
+    update_road()
+
+def update_npcs():
+    global npcs, score, game_over, cpu_spawn_timer, cpu_spawn_interval
+    if score < 2000:
+        cpu_spawn_interval = 180
+    elif score < 6000:
+        cpu_spawn_interval = 150
+    elif score < 12000:
+        cpu_spawn_interval = 120
+    elif score < 16000:
+        cpu_spawn_interval = 105
+    else:
+        cpu_spawn_interval = 110
+    if score < 4000:
+        num_cars = 2
+    elif score < 12000:
+        num_cars = 3
+    else:
+        num_cars = 3
+        if random.random() < 0.25:
+            num_cars = 4
+    speed_boost = min(0.18, 0.00002 * score)
+    npc_speed = BASE_NPC_SPEED + speed_boost
+    cpu_spawn_timer += 1
+    if cpu_spawn_timer >= cpu_spawn_interval:
+        cpu_spawn_timer = 0
+        lanes = (-ROAD_WIDTH / 4, 0.0, ROAD_WIDTH / 4)
+        created = 0
+        while created < num_cars:
+            placed = False
+            attempts = 0
+            while not placed and attempts < 20:
+                spawn_x = random.choice(lanes) + random.uniform(-1.0, 1.0)
+                spawn_z = player_z - SPAWN_DISTANCE - random.uniform(0.0, 8.0)
+                overlap = False
+                for c in npcs:
+                    dx = spawn_x - c.x
+                    dz = spawn_z - c.z
+                    if (dx * dx + dz * dz) < 1.9:
+                        overlap = True
+                        break
+                if not overlap:
+                    npcs.append(NpcCar(spawn_x, spawn_z, npc_speed, rand_color()))
+                    placed = True
+                attempts += 1
+            created += 1
+    for car in npcs:
+        car.z -= car.speed
+        if car.z > player_z and not car.passed:
+            score += OVERTAKE_BONUS
+            car.passed = True
+        if car.z < player_z and abs(car.x - player_x) < HIT_X and abs(car.z - player_z) < HIT_Z:
+            trigger_shake()
+            game_over = True
+    npcs[:] = [c for c in npcs if c.z > player_z - 150]    
+
