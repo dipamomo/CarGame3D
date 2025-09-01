@@ -320,3 +320,91 @@ def draw_road():
         draw_stripe = not draw_stripe
     glPopMatrix()
 
+def draw_tree(x, z, scale):
+    sx, sz, sc = float(x), float(z), float(scale)
+    glPushMatrix()
+    glTranslatef(sx, 0.0, sz)
+    glScalef(sc, sc, sc)
+    glColor3f(0.4, 0.2, 0.1)
+    glPushMatrix()
+    glRotatef(-90.0, 1.0, 0.0, 0.0)
+    glutSolidCylinder(0.30, 3.00, 10, 2)
+    glPopMatrix()
+    glColor3f(0.1, 0.7, 0.2)
+    glPushMatrix()
+    glTranslatef(0.0, 3.0, 0.0)
+    glutSolidSphere(1.5, 10, 10)
+    glPopMatrix()
+    glPopMatrix()
+
+def draw_house(x, z, house_type, color):
+    glPushMatrix()
+    glTranslatef(x, 0.0, z)
+    glRotatef(90 if x < 0 else -90, 0, 1, 0)
+    scale_factor = 2.0
+    house_w = 2.5 * scale_factor * 2.0
+    house_h = 2.0 * scale_factor * 1.5
+    house_d = 2.5 * scale_factor
+    glColor3f(color[0], color[1], color[2])
+    glPushMatrix()
+    glTranslatef(0.0, house_h / 2, 0.0)
+    glScalef(house_w, house_h, house_d)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    glColor3f(0.6, 0.2, 0.1)
+    glPushMatrix()
+    glTranslatef(0.0, house_h, 0.0)
+    glRotatef(-90, 1, 0, 0)
+    glutSolidCone(house_w / 2 * 1.7, 1.5 * scale_factor, 16, 16)
+    glPopMatrix()
+    glPopMatrix()
+
+def draw_environment():
+    i = 0
+    t_len = len(trees)
+    while i < t_len:
+        tx, tz, ts = trees[i]
+        draw_tree(tx, tz, ts)
+        i += 1
+    j = 0
+    h_len = len(houses)
+    while j < h_len:
+        hx, hz, ht = houses[j]
+        draw_house(hx, hz, ht, house_colors[j])
+        j += 1    
+
+def draw_wheel():
+    glPushMatrix()
+    glRotatef(90.0, 0.0, 1.0, 0.0)
+    glColor3f(0.20, 0.20, 0.10)
+    glutSolidCylinder(0.203, 0.102, 16, 8)
+    glTranslatef(0.0, 0.0, 0.051)
+    glColor3f(0.32, 0.32, 0.32)
+    glutSolidSphere(0.080, 16, 8)
+    glPopMatrix()
+
+def draw_player():
+    glPushMatrix()
+    glTranslatef(player_x, player_y + 0.5, player_z)
+    glRotatef(player_yaw, 0, 1, 0)
+    glColor3f(0.0, 1.0, 0.8)
+    glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.8, 0.6, 1.0])
+    glPushMatrix()
+    glScalef(1.0, 0.5, 2.0)
+    glutSolidCube(0.9)
+    glPopMatrix()
+    glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0, 1.0])
+    glColor3f(0.9, 0.9, 1.0)
+    glPushMatrix()
+    glTranslatef(0.0, 0.4, 0.0)
+    glScalef(0.8, 0.4, 1.2)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    right_wheel_offset = WHEEL_X_OFFSET - 0.1
+    for (dx, dz) in [(-WHEEL_X_OFFSET, 0.7), (right_wheel_offset, 0.7),
+                     (-WHEEL_X_OFFSET, -0.7), (right_wheel_offset, -0.7)]:
+        glPushMatrix()
+        glTranslatef(dx, -0.3, dz)
+        draw_wheel()
+        glPopMatrix()
+    glPopMatrix()
