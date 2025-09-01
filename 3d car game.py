@@ -482,3 +482,111 @@ def update_player():
         game_over = True
     update_road()
 
+def update_npcs():
+    global npcs, score, game_over, cpu_spawn_timer, cpu_spawn_interval
+    if score < 2000:
+        cpu_spawn_interval = 180
+    elif score < 6000:
+        cpu_spawn_interval = 150
+    elif score < 12000:
+        cpu_spawn_interval = 120
+    elif score < 16000:
+        cpu_spawn_interval = 105
+    else:
+        cpu_spawn_interval = 110
+    if score < 4000:
+        num_cars = 2
+    elif score < 12000:
+        num_cars = 3
+    else:
+        num_cars = 3
+        if random.random() < 0.25:
+            num_cars = 4
+    speed_boost = min(0.18, 0.00002 * score)
+    npc_speed = BASE_NPC_SPEED + speed_boost
+    cpu_spawn_timer += 1
+    if cpu_spawn_timer >= cpu_spawn_interval:
+        cpu_spawn_timer = 0
+        lanes = (-ROAD_WIDTH / 4, 0.0, ROAD_WIDTH / 4)
+        created = 0
+        while created < num_cars:
+            placed = False
+            attempts = 0
+            while not placed and attempts < 20:
+                spawn_x = random.choice(lanes) + random.uniform(-1.0, 1.0)
+                spawn_z = player_z - SPAWN_DISTANCE - random.uniform(0.0, 8.0)
+                overlap = False
+                for c in npcs:
+                    dx = spawn_x - c.x
+                    dz = spawn_z - c.z
+                    if (dx * dx + dz * dz) < 1.9:
+                        overlap = True
+                        break
+                if not overlap:
+                    npcs.append(NpcCar(spawn_x, spawn_z, npc_speed, rand_color()))
+                    placed = True
+                attempts += 1
+            created += 1
+    for car in npcs:
+        car.z -= car.speed
+        if car.z > player_z and not car.passed:
+            score += OVERTAKE_BONUS
+            car.passed = True
+        if car.z < player_z and abs(car.x - player_x) < HIT_X and abs(car.z - player_z) < HIT_Z:
+            trigger_shake()
+            game_over = True
+    npcs[:] = [c for c in npcs if c.z > player_z - 150]    
+
+def display():
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(60, window_width / window_height, 0.1, 1000.0)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    update_camera()
+    gluLookAt(camera_x, camera_y, camera_z, look_x, look_y, look_z, UP_X, UP_Y, UP_Z)
+    draw_terrain()
+    draw_road()
+    draw_environment()
+    draw_player()
+    for car in npcs:
+        draw_npc(car)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, window_width, 0, window_height, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    glPushAttrib(GL_ENABLE_BIT)
+    glDisable(GL_LIGHTING)
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(10, window_height - 20)
+    for ch in f"Speed: {player_speed:.2f}":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(10, window_height - 40)
+    for ch in f"Score: {score}":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+    if game_over:
+        glColor3f(1.0, 0.0, 1.0)
+        glRasterPos2f(window_width / 2 - 70, window_height / 2 + 50)
+        for ch in "Game Over":
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+        glRasterPos2f(window_width / 2 - 110, window_height / 2)
+        for ch in f"Final Score: {score}":
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+        glRasterPos2f(window_width / 2 - 120, window_height / 2 - 20)
+        for ch in "Press 'R' to restart":
+            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+    glPopAttrib()
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(10, 20)
+    for ch in "W/S: Accelerate/Brake  A/D: Turn  V: View  Up/Down: Camera Height":
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, ord(ch))
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glutSwapBuffers()    
