@@ -408,3 +408,77 @@ def draw_player():
         draw_wheel()
         glPopMatrix()
     glPopMatrix()
+
+def draw_npc(car):
+    glPushMatrix()
+    glTranslatef(car.x, 0.5, car.z)
+    glColor3f(car.color[0], car.color[1], car.color[2])
+    glPushMatrix()
+    glScalef(1.0, 0.5, 2.0)
+    glutSolidCube(0.9)
+    glPopMatrix()
+    glColor3f(min(car.color[0] + 0.6, 1.0),
+              min(car.color[1] + 0.6, 1.0),
+              min(car.color[2] + 0.6, 1.0))
+    glPushMatrix()
+    glTranslatef(0.0, 0.4, 0.0)
+    glScalef(0.8, 0.4, 1.2)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    right_wheel_offset = WHEEL_X_OFFSET - 0.1
+    for (dx, dz) in [(-WHEEL_X_OFFSET, 0.7), (right_wheel_offset, 0.7),
+                     (-WHEEL_X_OFFSET, -0.7), (right_wheel_offset, -0.7)]:
+        glPushMatrix()
+        glTranslatef(dx, -0.3, dz)
+        draw_wheel()
+        glPopMatrix()
+    glPopMatrix()
+
+def update_camera():
+    global camera_x, camera_y, camera_z, look_x, look_y, look_z
+    global shake_frames, shake_phase
+    ang = math.radians(player_yaw)
+    s, c = math.sin(ang), math.cos(ang)
+    if first_person_view:
+        camera_x, camera_z = player_x, player_z
+        look_x, look_y, look_z = player_x + s, camera_y - 0.5, player_z - c
+    else:
+        camera_x = player_x - 4.8 * s
+        camera_z = player_z + 4.8 * c
+        look_x, look_y, look_z = player_x, player_y + 0.55, player_z
+    if shake_frames > 0:
+        camera_x += SHAKE_MAG * math.sin(shake_phase * 17.0)
+        camera_y += SHAKE_MAG * 0.6 * math.sin(shake_phase * 23.0)
+        camera_z += SHAKE_MAG * 0.8 * math.sin(shake_phase * 19.0)
+        look_x += 0.3 * SHAKE_MAG * math.sin(shake_phase * 13.0)
+        look_y += 0.3 * SHAKE_MAG * math.sin(shake_phase * 29.0)
+        shake_phase += 0.35
+        shake_frames -= 1    
+
+def update_player():
+    global player_x, player_z, player_speed, player_yaw, game_over
+    if game_over:
+        return
+    if moving_forward:
+        player_speed = clamp(player_speed + ACCEL, 0.0, MAX_SPEED)
+    elif moving_brake:
+        player_speed = max(0.0, player_speed - ACCEL)
+    else:
+        player_speed = max(0.0, player_speed - FRICTION)
+    if player_speed > 0.05:
+        if turning_left:
+            player_yaw += TURN_RATE * (player_speed / MAX_SPEED)
+        if turning_right:
+            player_yaw -= TURN_RATE * (player_speed / MAX_SPEED)
+        player_yaw = clamp(player_yaw, -90.0, 90.0)
+    if player_speed != 0.0:
+        ang = math.radians(player_yaw)
+        s, c = math.sin(ang), math.cos(ang)
+        player_x += -player_speed * s
+        player_z += -player_speed * c
+    if (abs(player_x - WHEEL_X_OFFSET) > ROAD_WIDTH / 2 or
+        abs(player_x + WHEEL_X_OFFSET) > ROAD_WIDTH / 2):
+        trigger_shake()
+        game_over = True
+    update_road()
+
