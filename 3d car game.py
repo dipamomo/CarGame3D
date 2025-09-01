@@ -373,3 +373,84 @@ def draw_environment():
         draw_house(hx, hz, ht, house_colors[j])
         j += 1    
 
+def draw_wheel():
+    glPushMatrix()
+    glRotatef(90.0, 0.0, 1.0, 0.0)
+    glColor3f(0.20, 0.20, 0.10)
+    glutSolidCylinder(0.203, 0.102, 16, 8)
+    glTranslatef(0.0, 0.0, 0.051)
+    glColor3f(0.32, 0.32, 0.32)
+    glutSolidSphere(0.080, 16, 8)
+    glPopMatrix()
+
+def draw_player():
+    glPushMatrix()
+    glTranslatef(player_x, player_y + 0.5, player_z)
+    glRotatef(player_yaw, 0, 1, 0)
+    glColor3f(0.0, 1.0, 0.8)
+    glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.8, 0.6, 1.0])
+    glPushMatrix()
+    glScalef(1.0, 0.5, 2.0)
+    glutSolidCube(0.9)
+    glPopMatrix()
+    glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0, 1.0])
+    glColor3f(0.9, 0.9, 1.0)
+    glPushMatrix()
+    glTranslatef(0.0, 0.4, 0.0)
+    glScalef(0.8, 0.4, 1.2)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    right_wheel_offset = WHEEL_X_OFFSET - 0.1
+    for (dx, dz) in [(-WHEEL_X_OFFSET, 0.7), (right_wheel_offset, 0.7),
+                     (-WHEEL_X_OFFSET, -0.7), (right_wheel_offset, -0.7)]:
+        glPushMatrix()
+        glTranslatef(dx, -0.3, dz)
+        draw_wheel()
+        glPopMatrix()
+    glPopMatrix()
+
+def draw_npc(car):
+    glPushMatrix()
+    glTranslatef(car.x, 0.5, car.z)
+    glColor3f(car.color[0], car.color[1], car.color[2])
+    glPushMatrix()
+    glScalef(1.0, 0.5, 2.0)
+    glutSolidCube(0.9)
+    glPopMatrix()
+    glColor3f(min(car.color[0] + 0.6, 1.0),
+              min(car.color[1] + 0.6, 1.0),
+              min(car.color[2] + 0.6, 1.0))
+    glPushMatrix()
+    glTranslatef(0.0, 0.4, 0.0)
+    glScalef(0.8, 0.4, 1.2)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    right_wheel_offset = WHEEL_X_OFFSET - 0.1
+    for (dx, dz) in [(-WHEEL_X_OFFSET, 0.7), (right_wheel_offset, 0.7),
+                     (-WHEEL_X_OFFSET, -0.7), (right_wheel_offset, -0.7)]:
+        glPushMatrix()
+        glTranslatef(dx, -0.3, dz)
+        draw_wheel()
+        glPopMatrix()
+    glPopMatrix()
+
+def update_camera():
+    global camera_x, camera_y, camera_z, look_x, look_y, look_z
+    global shake_frames, shake_phase
+    ang = math.radians(player_yaw)
+    s, c = math.sin(ang), math.cos(ang)
+    if first_person_view:
+        camera_x, camera_z = player_x, player_z
+        look_x, look_y, look_z = player_x + s, camera_y - 0.5, player_z - c
+    else:
+        camera_x = player_x - 4.8 * s
+        camera_z = player_z + 4.8 * c
+        look_x, look_y, look_z = player_x, player_y + 0.55, player_z
+    if shake_frames > 0:
+        camera_x += SHAKE_MAG * math.sin(shake_phase * 17.0)
+        camera_y += SHAKE_MAG * 0.6 * math.sin(shake_phase * 23.0)
+        camera_z += SHAKE_MAG * 0.8 * math.sin(shake_phase * 19.0)
+        look_x += 0.3 * SHAKE_MAG * math.sin(shake_phase * 13.0)
+        look_y += 0.3 * SHAKE_MAG * math.sin(shake_phase * 29.0)
+        shake_phase += 0.35
+        shake_frames -= 1    
