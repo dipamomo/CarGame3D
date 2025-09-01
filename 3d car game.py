@@ -24,3 +24,5 @@ look_x = 0.0
 look_y = 0.0
 look_z = 0.0
 
+UP_X, UP_Y, UP_Z = 0.0, 1.0, 0.0
+
